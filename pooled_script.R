@@ -365,17 +365,19 @@ fd1 <- function(n, a) {
   e_f <- rnorm(n, 0, 1) # error in military  
   e_s <- rnorm(n, 0, 1) # error in social complexity
   e_w <- rnorm(n, 0, 1) # error in writing
-  e_m <- rnorm(n, 0, 1) # error in missingness  
-  MGU <- MIL * a + e_f # Moralistic Gods (Unobserved)
-  SCO <- MGU * a + MIL * a + e_f + e_u  # Y
-  WRI <- SCO * a + e_s # Writing
-  MIS <- WRI * a + e_w # Missingness
-  MGO <- MGU * a + MIS * a + e_m + e_u # Observed MSP
+  e_m <- rnorm(n, 0, 1) # error in missingness
+  e_q <- rnorm(n, 0, 1)
+  e_so <- rnorm(n, 0, 1)
+  MGU <- MIL * a + e_u # Moralistic Gods (Unobserved)
+  SCU <- MGU * a + MIL * a + e_s # Y
+  WRI <- SCU * a + e_w # Writing
+  MIS <- WRI * a + e_m # Missingness
+  SCO <- SCU * a + MIS * a + e_so
+  MGO <- MGU * a + MIS * a + e_q # Observed MSP
   df <- data.frame(MGU, MIL, WRI, MIS, MGO, SCO) # data frame
-  open <- coef(lm(SCO ~ MGO + MIL, data = df))[2] # Minimal
-  controlled <- coef(lm(SCO ~ MGO + MIL + WRI, data = df))[2] # Maximal
-  controlled2 <- coef(lm(SCO ~ MGO + MIL + WRI + MGU, data = df))[2]
-  return(c(open, controlled, controlled2))
+  open <- coef(lm(SCO ~ MGO, data = df))[2] # ~ moralistic gods
+  controlled <- coef(lm(SCO ~ MGO + MIL, data = df))[2] # + military
+  return(c(open, controlled))
 }
 
 ## Start here. Alter beta to examine shifts in estimates.
@@ -383,40 +385,41 @@ fd1 <- function(n, a) {
 beta <- 0.5
 
 trisim1 <- data.frame(t(replicate(1000, fd1(100, beta))))
-names(trisim1) <- c("open", "controlled", "controlled2")
+names(trisim1) <- c("open", "controlled")
 
 densop1 <- density(trisim1$open)
 densco1 <- density(trisim1$controlled)
-densun1 <- density(trisim1$controlled2)
 
 par(mfrow = c(2, 1), mar = c(2, 1, 1, 1)) #bottom, left, top, right
 
 plot(dagitty('dag {
 bb="0,0,1,1"
-"Moral Gods (Obs.)" [exposure,pos="0.226,0.269"]
-"Moral Gods (Unobs.)" [latent,pos="0.226,0.159"]
-"Social Complexity" [outcome,pos="0.127,0.271"]
-Military [pos="0.127,0.159"]
-Missingness [pos="0.226,0.379"]
-Writing [pos="0.127,0.379"]
-"Moral Gods (Unobs.)" -> "Moral Gods (Obs.)"
-"Moral Gods (Unobs.)" -> "Social Complexity"
-"Social Complexity" -> Writing
-Military -> "Moral Gods (Unobs.)"
-Military -> "Social Complexity"
-Missingness -> "Moral Gods (Obs.)"
-Writing -> Missingness
-}
-
-'))
+             "Moral Gods (Obs.)" [exposure,pos="0.267,0.135"]
+             "Moral Gods (Unobs.)" [latent,pos="0.226,0.070"]
+             "Social Complexity (Obs.)" [outcome,pos="0.180,0.136"]
+             "Social Complexity (Unobs.)" [latent,pos="0.123,0.070"]
+             Military [adjusted,pos="0.176,0.025"]
+             Missingness [latent,pos="0.228,0.222"]
+             Recording [latent,pos="0.123,0.222"]
+             "Moral Gods (Unobs.)" -> "Moral Gods (Obs.)"
+             "Moral Gods (Unobs.)" -> "Social Complexity (Unobs.)"
+             "Social Complexity (Unobs.)" -> "Social Complexity (Obs.)"
+             "Social Complexity (Unobs.)" -> Recording
+             Military -> "Moral Gods (Unobs.)"
+             Military -> "Social Complexity (Unobs.)"
+             Missingness -> "Moral Gods (Obs.)"
+             Missingness -> "Social Complexity (Obs.)"
+             Recording -> Missingness
+             }
+             '))
 
 plot(NA, xlab = NA, ylab = "", 
      xlim = c(0, 1), 
-     ylim = c(0, 10), 
+     ylim = c(0, 5), 
      cex.lab = 1.3, yaxt = 'n')
-polygon(densop1, col = mycol1) # SCO ~ MGO + MIL
-polygon(densco1, col = mycol2) # SCO ~ MGO + MIL + WRI
-polygon(densun1, col = mycol3) # SCO ~ MGO + MIL + WRI + MGU
-abline(v = beta, lty = 2)
-legend("topright", legend = c("~ MGO + MIL", "+ Writing", "+ Unobserved"), 
-       fill = c(mycol1, mycol2, mycol3), cex = 1, horiz = F, bty = T, inset = c(0.03, 0.05))
+polygon(densop1, col = mycol1) # SCO ~ MGO
+polygon(densco1, col = mycol3) # SCO ~ MGO + MIL
+abline(v = .5, lty = 2)
+legend("topright", legend = c("~ Moralistic Gods", 
+                             "~ Moralistic Gods + Military"), 
+       fill = c(mycol1, mycol3), cex = .85, horiz = F, bty = T, inset = c(0.05, .15))
