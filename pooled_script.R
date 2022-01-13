@@ -360,37 +360,37 @@ mycol3 <- rgb(0, 0, 0, max = 200, alpha = 125, names = "darkgray")
 # Model 1
 #####################
 fd1 <- function(n, a) {
-  MIL <- rnorm(n, 0, 1) # Military
+  MIL <- rnorm(n, 0, 1) # military
   e_u <- rnorm(n, 0, 1) # error in gods (unobserved)
   e_f <- rnorm(n, 0, 1) # error in military  
-  e_s <- rnorm(n, 0, 1) # error in social complexity
+  e_s <- rnorm(n, 0, 1) # error in social complexity (unobserved)
   e_w <- rnorm(n, 0, 1) # error in writing
   e_m <- rnorm(n, 0, 1) # error in missingness
-  e_q <- rnorm(n, 0, 1)
-  e_so <- rnorm(n, 0, 1)
-  MGU <- MIL * a + e_u # Moralistic Gods (Unobserved)
-  SCU <- MGU * a + MIL * a + e_s # Y
-  WRI <- SCU * a + e_w # Writing
-  MIS <- WRI * a + e_m # Missingness
-  SCO <- SCU * a + MIS * a + e_so
-  MGO <- MGU * a + MIS * a + e_q # Observed MSP
+  e_q <- rnorm(n, 0, 1) # error in gods (observed)
+  e_so <- rnorm(n, 0, 1) # error in social complexity (observed)
+  MGU <- MIL * a + e_u # moralistic gods (unobserved)
+  SCU <- MGU * a + MIL * a + e_s # social complexity (unobserved)
+  WRI <- SCU * a + e_w # writing
+  MIS <- WRI * a + e_m # missingness
+  SCO <- SCU * a + MIS * a + e_so # social complexity (observed)
+  MGO <- MGU * a + MIS * a + e_q # moralistic gods (observed)
   df <- data.frame(MGU, MIL, WRI, MIS, MGO, SCO) # data frame
-  open <- coef(lm(SCO ~ MGO, data = df))[2] # ~ moralistic gods
-  controlled <- coef(lm(SCO ~ MGO + MIL, data = df))[2] # + military
+  open <- coef(lm(SCO ~ MGO, data = df))[2] # social complexity ~ moralistic gods
+  controlled <- coef(lm(SCO ~ MGO + MIL, data = df))[2] # ... + military
   return(c(open, controlled))
 }
 
-## Start here. Alter beta to examine shifts in estimates.
+## Start here. Alter beta to examine shifts in estimates and magnitude of difference between models.
 
 beta <- 0.5
 
 trisim1 <- data.frame(t(replicate(1000, fd1(100, beta))))
 names(trisim1) <- c("open", "controlled")
 
-densop1 <- density(trisim1$open)
-densco1 <- density(trisim1$controlled)
+densop1 <- density(trisim1$open) # distribution of effect of moralistic gods on social complexity with no other variables
+densco1 <- density(trisim1$controlled) # distributon effect when MIL is held constant
 
-par(mfrow = c(2, 1), mar = c(2, 1, 1, 1)) #bottom, left, top, right
+par(mfrow = c(2, 1), mar = c(2, 1, 1, 1)) # bottom, left, top, right
 
 plot(dagitty('dag {
 bb="0,0,1,1"
